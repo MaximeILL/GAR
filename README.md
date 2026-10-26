@@ -39,9 +39,9 @@ TRM refines two latent states: an answer state **y**, decoded into the output gr
 
 Every method runs on the same checkpoints and puzzles, and the retries are compared inside one shared harness: after the standard pass, each puzzle that the halting head rejects receives up to R retries of 16 supervision steps, until the head accepts a grid. Only the retry changes. The main findings are:
 
-1. **The answer state carries the failure.** After 16 retries, continuing the failed trajectory without perturbation recovers 74% of the standard-pass failures on Sudoku-Extreme and 16% on PPBench validation. Resampling **y** raises this to 89% and 34%, whereas resampling **z** barely helps (74% and 19%). Restarting from the initial states with **y** resampled performs as well (88% and 40%), so retries can be independent and run in parallel.
-2. **Test-time compute is better spent resampling y than perturbing z, increasingly so as the budget grows.** After 64 restarts, resampling **y** recovers 96% and 54% of the failures, compared with 85% and 27% when **z** is resampled instead, and 85% and 33% for PTRM, which adds noise to **z** before every step. With 16 restarts, it already recovers 88% and 40%, more than either perturbation of **z** does with 64.
-3. **GAR is tuning-free and compute-efficient.** The halting head re-opens 99.3% (Sudoku-Extreme) and 87.5% (PPBench validation) of the failures and none of the successes, so GAR loses no solved puzzle. PTRM stays below GAR at R = 64 even with 197 and 42 times as much compute under its own protocol, and 4.3 and 6.0 times as much under the shared harness.
+1. **The answer state carries the failure.** After 16 retries that continue the failed trajectory, resampling **y** recovers 89% of the standard-pass failures on Sudoku-Extreme and 34% on PPBench validation, against 74% and 16% without perturbation and 74% and 19% when **z** is resampled. Restarts that resample **y** do as well (88% and 40%), and restarts are independent draws that can run in parallel.
+2. **Test-time compute is better spent resampling y than perturbing z, increasingly so as the budget grows.** After 64 restarts, resampling **y** recovers 96% and 54% of the failures, against 85% and 27% when **z** is resampled instead and 85% and 33% for PTRM, which adds noise to **z** before every step.
+3. **GAR is tuning-free and compute-efficient.** The halting head re-opens 99.3% (Sudoku-Extreme) and 87.5% (PPBench validation) of the failures and none of the successes, so GAR loses no solved puzzle. PTRM stays below GAR at R = 64 even with 197 and 42 times as much compute under its own protocol.
 
 ## Results
 
@@ -87,7 +87,7 @@ Every method runs on the same checkpoints and puzzles, and the retries are compa
   </tbody>
 </table>
 
-Results on the 1,000 Sudoku-Extreme test puzzles and on the 308 PPBench validation puzzles of the five reported types. Cost is in blocks per puzzle, where one block is 16 supervision steps, the cost of a standard pass. *Lost* counts the puzzles that the standard pass solves and the method fails, out of 859 and 212. Stochastic rows are means over three seeds (in Table 2 of the paper, the standard deviation of their accuracy is at most 0.46 points on Sudoku-Extreme and 0.75 on PPBench). PTRM is rerun on our checkpoints, with σ = 0.3 on Sudoku-Extreme and σ* = 1.5 on PPBench. The uniform unroll runs the recursion for D steps on every puzzle. † PTRM's headline budget, which costs 197 and 42 times as much as GAR at R = 64 under PTRM's own protocol, and 4.3 and 6.0 times as much under the harness. Abridged from Table 2 of the paper. Tables 7 and 8 list ten PTRM configurations per benchmark, with their pass@K′ oracle.
+Abridged from Table 2 of the paper, on the 1,000 Sudoku-Extreme test puzzles and the 308 PPBench validation puzzles of the five reported types. Cost is in blocks per puzzle, where one block is 16 supervision steps, the cost of a standard pass. *Lost* counts the puzzles that the standard pass solves and the method fails, out of 859 and 212. Stochastic rows are means over three sampling seeds on the same checkpoint, and the standard deviation of their accuracy is at most 0.46 points on Sudoku-Extreme and 0.75 on PPBench. PTRM is rerun on our checkpoints, with σ = 0.3 on Sudoku-Extreme and σ* = 1.5 on PPBench ([Method](#method) explains this choice). With its own protocol, it draws K = 100 noisy rollouts of D steps for every puzzle and returns the grid with the highest q̂ among the first K′ (best-Q@K′); under the harness, the same rollouts run one at a time, as retries. The uniform unroll runs the recursion for D steps on every puzzle. † PTRM's headline budget: 197 and 42 times the cost of GAR at R = 64 with its own protocol, and 4.3 and 6.0 times under the harness.
 
 ### Matched numbers of retries
 
@@ -124,13 +124,13 @@ Results on the 1,000 Sudoku-Extreme test puzzles and on the 308 PPBench validati
 
 Accuracy (%, ± standard deviation over three seeds) and cost in blocks per puzzle (in parentheses). The standard pass scores 85.90% and 68.83%. Each indented row changes one thing in GAR, and PTRM differs from "**z** instead of **y**" only in how **z** is perturbed (Table 1 of the paper).
 
-At 64 retries, GAR is ahead of PTRM by 1.57 points on Sudoku-Extreme (95% bootstrap interval [+0.87, +2.37]) and by 6.60 points on PPBench validation ([+3.90, +9.52]), and ahead of "**z** instead of **y**" by 1.53 ([+0.87, +2.27]) and 8.44 points ([+5.52, +11.47]). Continuing instead of restarting gains 0.30 points on Sudoku-Extreme ([+0.03, +0.60]) and loses 2.60 on PPBench ([−4.76, −0.54]), so GAR restarts, and its retries are independent draws that can run in parallel. Table 11 of the paper gives seven budgets from r = 1 to 64 and the golden split, and Table 12 the paired differences.
+Continuing instead of restarting gains 0.30 points on Sudoku-Extreme at 64 retries but loses 2.60 on PPBench validation, so GAR restarts. Table 11 of the paper gives seven budgets from r = 1 to 64 and the golden split, and Table 12 the paired differences with their bootstrap intervals.
 
 <p align="center">
   <img src="assets/fig4_retries.png" width="100%" alt="Accuracy and fraction of re-opened puzzles still active against the number of retries, on Sudoku-Extreme and PPBench validation, for GAR, z instead of y, continue instead of restart, PTRM and TRM">
 </p>
 
-*Figure 4 of the paper. Accuracy after r retries and fraction of the re-opened puzzles still active (no grid accepted) before the r-th retry, on a logarithmic scale in r; mean ± standard deviation over three seeds. TRM continues without perturbation under the harness (depth alone). PTRM, GAR and "**z** instead of **y**" scale width, with one rollout of 16 steps per retry.*
+*Figure 4 of the paper. Accuracy after r retries, and fraction of the re-opened puzzles still active (no grid accepted) before the r-th retry; mean ± standard deviation over three seeds. TRM continues without perturbation (depth alone), and each PTRM retry is one rollout of D = 16 steps.*
 
 ### Which state to perturb
 
@@ -140,11 +140,9 @@ At 64 retries, GAR is ahead of PTRM by 1.57 points on Sudoku-Extreme (95% bootst
 
 *Figure 2 of the paper. Fraction of the standard-pass failures that end up correct after 16 retries, out of 141 on Sudoku-Extreme and 96 on PPBench validation. In each panel, retries continue the failed trajectory on the left (depth) and restart from the initial state on the right (width). A restart without perturbation replays the standard pass and recovers nothing. Mean ± standard deviation over three seeds.*
 
-On the PPBench golden split (49 puzzles, standard pass 67.35%), GAR reaches 80.27 ± 1.18% with 16 retries and 81.63% with 64, compared with 72.11 ± 1.18% and 74.83 ± 1.18% for PTRM under the harness. It loses one solved puzzle there, re-opened by the only false positive of the gate (Tables 11, 15 and 16).
-
 ### Limitations
 
-GAR inherits the halting head of the model: the gate misses 12.5% of the PPBench validation failures, and the head can accept wrong grids on retries. GAR has not been tested on Maze-Hard, where this head is poorly aligned, on ARC-AGI, or beyond TRM. On PPBench, its gains are smallest on nurikabe and heyawake, and the checkpoint is trained on a reconstruction of PTRM's data pipeline.
+GAR inherits the halting head of the model: the gate misses 12.5% of the PPBench validation failures, and the head can accept wrong grids on retries. On the PPBench golden split (the same 49 puzzles as in PTRM, 33 of them solved by the standard pass), the gate also re-opens one solved puzzle, and GAR loses it. GAR has not been tested on Maze-Hard, where this head is poorly aligned, on ARC-AGI, or beyond TRM. On PPBench, its gains are smallest on nurikabe and heyawake, and the checkpoint is trained on a reconstruction of PTRM's data pipeline.
 
 ## Method
 
@@ -157,11 +155,11 @@ TRM keeps two states of shape [P + L, d]: a prefix of P = 16 positions, the L gr
 - **Stopping rule.** The first retry with q̂ ≥ 0 ends the search, and its grid is committed.
 - **Fallback.** If no retry is accepted, the harness returns the grid with the highest q̂ among the standard pass and the retries.
 
-A solved puzzle can be lost only if the gate re-opens it. The gate re-opens 140 of the 141 failures and none of the 859 successes on Sudoku-Extreme, 84 of 96 failures and none of 212 successes on PPBench validation, and 15 of 16 failures and 1 of 33 successes on the golden split (Table 3). The two budgets, R = 16 (= N<sub>sup</sub>) and R = 64, were fixed in advance. Since the random draws of a retry do not depend on R, the first r retries of a run form a run with R = r.
+A solved puzzle can be lost only if the gate re-opens it. The two budgets, R = 16 (= N<sub>sup</sub>) and R = 64, were fixed in advance. Since the random draws of a retry do not depend on R, the first r retries of a run form a run with R = r.
 
 ### Retries and GAR
 
-A retry either *continues* the failed trajectory from where the previous block left it (depth), or *restarts* from (**y**<sub>init</sub>, **z**<sub>init</sub>) (width). It applies no perturbation, *resamples* one state, or, as in PTRM, adds noise 𝒩(0, σ²I) to **z** before every supervision step. To resample a state, the vector of each fillable cell is replaced, once at the block boundary, by a fresh direction drawn from an isotropic Gaussian and rescaled to the norm of that state's initial value. Positions that a retry does not resample are kept if it continues and set back to the initial states if it restarts. GAR restarts and resamples **y**:
+A retry either *continues* the failed trajectory from where the previous block left it (depth), or *restarts* from (**y**<sub>init</sub>, **z**<sub>init</sub>) (width). It applies no perturbation, *resamples* one state, or, as in PTRM, adds noise 𝒩(0, σ²I) to **z** before every supervision step. To resample a state, the vector of each fillable cell is replaced, once at the block boundary, by a fresh direction drawn from an isotropic Gaussian and rescaled to the norm of that state's initial value. GAR restarts and resamples **y**:
 
 ```text
 Algorithm 1: Gated Answer Resampling
@@ -193,13 +191,13 @@ BLOCK runs T<sub>blk</sub> supervision steps and returns the new states, the gri
 
 **Nothing to tune.** The block length and the default R come from the training horizon, the threshold from the halting rule, the norm from **y**<sub>init</sub>, and the mask from the input tokens. The only free parameter is the budget R. Labels of the reported splits did inform two design decisions: the choice of retry, made on Sudoku-Extreme and PPBench validation, and the static families of each PPBench type, which were checked against the labels of its validation and golden splits.
 
-**The PTRM baseline.** PTRM's checkpoints were not publicly available, so every method, PTRM included, runs on our checkpoints. *PTRM with its own protocol* draws K = 100 rollouts per puzzle from the model's initial states, adds noise of scale σ to **z** (prefix included) before every supervision step, and returns the grid of the rollout with the highest q̂ among the first K′ (best-Q@K′), for K′D/16 blocks per puzzle. On Sudoku-Extreme, σ = 0.3 is PTRM's value. On PPBench, σ* = 1.5 lies inside the plateau of best-Q@25 in a sweep on our validation split, so it is selected on the labels of the split we report; PTRM's value there, 0.2, scores 2.70 points lower, and the best scale of the grid, 2.5 at its edge, 0.65 points higher (Table 6). *PTRM under the harness* runs the same rollouts one at a time, each as one retry of D steps.
+**The PTRM baseline.** PTRM's checkpoints were not publicly available, so every method, PTRM included, runs on our checkpoints. On Sudoku-Extreme, σ = 0.3 is PTRM's value. On PPBench, σ* = 1.5 lies inside the plateau of best-Q@25 in a sweep on our validation split, so it is selected on the labels of the split we report; PTRM's value there, 0.2, scores 2.70 points lower, and the best scale of the grid, 2.5 at its edge, 0.65 points higher (Table 6).
 
-**Statistics.** Stochastic methods run with three sampling seeds on a fixed checkpoint, and ± is the standard deviation over seeds. Differences between methods are paired by puzzle and averaged over seeds, with 95% bootstrap intervals over puzzles (B = 10,000, the seeds of a puzzle resampled together). A difference is called significant when its interval excludes zero, without correction for multiplicity. GAR, its continuation variant and "**z** instead of **y**" use common random numbers: a puzzle receives the same directions at a given retry in all three, applied to **z** in the third.
+Section 3 of the paper describes the protocol and its statistics, and Appendices A and C give the details.
 
 ## Using GAR on a TRM checkpoint
 
-The notebooks run the retries with their full bookkeeping: caches, controls and statistics. The code below is GAR alone, written against TRM's model code: the `models/` package of the [TRM release](https://github.com/SamsungSAILMontreal/TinyRecursiveModels), which every notebook also writes to its working directory. It performs the same writes to the two states as the notebooks' `restart` arm, and draws the same directions from a given generator.
+The notebooks run the retries with their full bookkeeping: caches, controls and statistics. The code below is GAR alone, written against TRM's model code: the `models/` package of the [TRM release](https://github.com/SamsungSAILMontreal/TinyRecursiveModels), which every notebook clones at commit `c011037`. It performs the same writes to the two states as the notebooks' `restart` arm, and draws the same directions from a given generator.
 
 ```python
 import torch
@@ -343,7 +341,7 @@ Each notebook clones the [TRM release](https://github.com/SamsungSAILMontreal/Ti
 | [`SudokuExtreme_GAR`](SudokuExtreme_GAR.ipynb) | GAR and its continuation variant at R = 64 with three seeds, against TRM and PTRM under the harness, with paired bootstrap intervals. | `TABLE`, `RECOVERED`, `SOLVED_BY_ONE` |
 | [`SudokuExtreme_z_instead_of_y`](SudokuExtreme_z_instead_of_y.ipynb) | The restart that resamples **z** instead of **y**, at R = 64, against GAR and PTRM. | `TABLE`, `RECOVERED`, `SOLVED_BY_ONE` |
 | [`PPBench_data_and_training`](PPBench_data_and_training.ipynb) | Builds the six-type PPBench dataset, checks it, and trains TRM-Att. | the dataset, the counts per type, the checkpoints |
-| [`PPBench_continue_and_PTRM`](PPBench_continue_and_PTRM.ipynb) | On validation and golden: the standard pass and the gate, continued retries at R = 16, PTRM's noise in continued retries at five scales, PTRM rerun on the checkpoint (σ* = 1.5, K = 100, D = 16 and 48) with its own protocol and under the harness, the uniform unroll, and the σ sweep. | `GATE`, `LATTICE`, `DOSE`, `PTRM_OWN`, `PTRM_HARNESS`, `SIGMA_SWEEP` |
+| [`PPBench_continue_and_PTRM`](PPBench_continue_and_PTRM.ipynb) | On validation and golden: the standard pass and the gate, continued retries at R = 16, PTRM rerun on the checkpoint (σ* = 1.5, K = 100, D = 16 and 48) with its own protocol and under the harness, and the uniform unroll. On validation only: PTRM's noise in continued retries at five scales, and the σ sweep. | `GATE`, `LATTICE`, `DOSE`, `PTRM_OWN`, `PTRM_HARNESS`, `SIGMA_SWEEP` |
 | [`PPBench_GAR`](PPBench_GAR.ipynb) | GAR and its continuation variant at R = 64 on validation and golden, against TRM and PTRM under the harness, with paired intervals and results per type. | `TABLES` |
 | [`PPBench_z_instead_of_y`](PPBench_z_instead_of_y.ipynb) | The restart that resamples **z** instead of **y**, at R = 64, on validation and golden. | `TABLES` |
 
@@ -352,7 +350,7 @@ Each notebook clones the [TRM release](https://github.com/SamsungSAILMontreal/Ti
 ### Requirements
 
 - A Google Colab runtime with an NVIDIA A100 GPU and Google Drive. Outside Colab, the Drive mount is skipped, and the paths of the configuration cell must point to local folders.
-- The first cell installs `einops`, `pydantic`, `argdantic`, `tqdm` and `huggingface_hub` in the Sudoku-Extreme notebooks, and `einops`, `pydantic` and `argdantic` in the PPBench evaluation notebooks. `PPBench_data_and_training` installs PyTorch (CUDA 12.1 build), the dependencies of TRM's training code (`einops`, `tqdm`, `coolname`, `pydantic`, `argdantic`, `wandb`, run offline, `omegaconf`, `hydra-core`, `huggingface_hub`, `numba`), `ppbench==0.1.0`, which ships the pzprjs puzzle engine and the golden puzzles, and Node.js if it is missing.
+- The first cell installs `einops`, `pydantic`, `argdantic`, `tqdm` and `huggingface_hub` in the Sudoku-Extreme notebooks, and `einops`, `pydantic` and `argdantic` in the PPBench evaluation notebooks. `PPBench_data_and_training` installs the dependencies of TRM's training code (`einops`, `tqdm`, `coolname`, `pydantic`, `argdantic`, `wandb`, run offline, `omegaconf`, `hydra-core`, `huggingface_hub`, `numba`), `ppbench==0.1.0`, which ships the pzprjs puzzle engine and the golden puzzles, and, if they are missing, PyTorch (CUDA 12.1 build) and Node.js.
 - TRM-Att was trained at batch 768 on an A100 80GB. On a smaller GPU, `PPBench_data_and_training` lets you halve the batch, which departs from the paper's recipe.
 
 ### Checkpoints and data
@@ -388,19 +386,13 @@ The configuration cell of each evaluation notebook sets `CKPT_TRM`, the checkpoi
 
 On each benchmark, run `*_continue_and_PTRM` first: it writes PTRM's rollouts, which `*_GAR` and `*_z_instead_of_y` read. Then run `*_GAR`, which runs GAR (pass `RST064`), its continuation variant (pass `R064`) and TRM under the harness (pass `R064none`), and `*_z_instead_of_y`, which runs the restart that resamples **z** (pass `MIR064`) and reads GAR's passes from the cache, or runs them if they are missing. On PPBench, build the dataset with `PPBench_data_and_training` before anything else.
 
-Each pass and each set of PTRM rollouts is saved in `CACHE_DIR` as an `.npz` file and reloaded when a notebook runs again: when all its files are in the cache, a notebook runs only the standard pass and its checks, and builds its tables from the files. A pass file stores the correctness of every puzzle after each retry, and the correctness, halting logit and grid of its standard pass; a rollout file stores the correctness and halting logit of every rollout, and the halting logits of the standard pass. Before using a file, the notebooks check that its standard pass matches, bit for bit, the one they compute themselves: on all puzzles on PPBench, and on the first batch of 768 puzzles on Sudoku-Extreme. Results computed on another GPU or software version may differ on single puzzles, so a file that fails this check stops the notebook, and deleting it makes the notebook compute it again. The paper's numbers were produced on A100 GPUs, in eager mode on Sudoku-Extreme and under `torch.compile` on PPBench.
+Each pass and each set of PTRM rollouts is saved in `CACHE_DIR` as an `.npz` file and reloaded when a notebook runs again: when all its files are in the cache, a notebook runs only the standard pass and its checks, and builds its tables from the files. Each file also keeps the standard pass it was computed with: its correctness, halting logits and grids in a pass file, its halting logits in a rollout file. Before using a file, the notebooks check that its standard pass matches, bit for bit, the one they compute themselves: on all puzzles on PPBench, and on the first batch of 768 puzzles on Sudoku-Extreme. Results computed on another GPU or software version may differ on single puzzles, so a file that fails this check stops the notebook, and deleting it makes the notebook compute it again. The paper's numbers were produced on A100 GPUs, in eager mode on Sudoku-Extreme and under `torch.compile` on PPBench.
 
-The notebooks also check, as in Appendix A of the paper, that:
-
-- a restart that resamples nothing replays the standard pass bit for bit, on grids and halting logits (`*_GAR`, `*_z_instead_of_y`);
-- without noise, a PTRM rollout of 16 steps reproduces the standard pass, alone or in copies batched together, and a longer rollout reproduces continued blocks (a D = 64 unroll equals four continued blocks of 16 on Sudoku-Extreme, D = 48 equals three on PPBench);
-- on PPBench, the fillable cells read from the input contain every cell whose label differs from the input and no unlabelled cell.
-
-`*_continue_and_PTRM` prints the norms of Appendix A (positions output by the network have norm √d = 22.627, and resampled directions are rescaled to ‖**y**<sub>init</sub>‖ = 21.244 or ‖**z**<sub>init</sub>‖ = 22.689), and the `cold` row of its `LATTICE` shows that the restart without perturbation recovers and loses nothing.
+The notebooks also run the checks of Appendices A and C of the paper: a restart that resamples nothing replays the standard pass bit for bit; without noise, a PTRM rollout of 16 steps reproduces the standard pass, and a longer one reproduces continued blocks; and on PPBench, the fillable cells read from the input contain every cell whose label differs from the input and no unlabelled cell. `*_continue_and_PTRM` also prints the norms of Appendix A: positions output by the network have norm √d = 22.627, and resampled directions are rescaled to ‖**y**<sub>init</sub>‖ = 21.244 or ‖**z**<sub>init</sub>‖ = 22.689.
 
 ### Where each result comes from
 
-In this table, `*_` stands for the `SudokuExtreme_` and `PPBench_` notebooks.
+In this table, `*_` stands for the `SudokuExtreme_` and `PPBench_` notebooks. On PPBench, every table is given per split (`"val"` or `"gold"`), and `TABLE`, `RECOVERED` and `SOLVED_BY_ONE` are the entries `"table"`, `"recovered"` and `"solved_by_one"` of `TABLES[split]`.
 
 | In the paper | Notebooks and tables |
 |:---|:---|
@@ -413,7 +405,7 @@ In this table, `*_` stands for the `SudokuExtreme_` and `PPBench_` notebooks.
 | Table 9 and Figure 2: which state to perturb | `*_continue_and_PTRM` (`LATTICE`), `*_GAR` (`RECOVERED`: GAR, PTRM), `*_z_instead_of_y` (`RECOVERED`) |
 | Table 10 and Appendix D.1: continued retries in detail, noise doses | `*_continue_and_PTRM` (`LATTICE`; `DOSE` on PPBench) |
 | Table 12: paired differences | `*_GAR` (`TABLE`: continue minus GAR, GAR minus PTRM), `*_z_instead_of_y` (`TABLE`: **y** minus **z**, once minus noise) |
-| Tables 14 to 16: PPBench per type, golden split | `PPBench_GAR` (per type: GAR, continue instead of restart, PTRM), `PPBench_z_instead_of_y` (per type), `PPBench_continue_and_PTRM` (golden: `LATTICE`, `PTRM_OWN`) |
+| Tables 14 to 16: PPBench per type, golden split | `PPBench_GAR` (`TABLES`: golden split, and per type GAR, continue instead of restart and PTRM), `PPBench_z_instead_of_y` (`TABLES`: golden split, and per type), `PPBench_continue_and_PTRM` (golden: `GATE`, `LATTICE`, `PTRM_OWN`) |
 
 ### Not included in this release
 
