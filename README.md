@@ -495,8 +495,6 @@ The paper's checkpoint is the last of the 21 evaluations, which is also the best
 }
 ```
 
-This work builds on TRM ([Jolicoeur-Martineau, 2025](https://arxiv.org/abs/2510.04871)), PTRM ([Sghaier et al., 2026](https://arxiv.org/abs/2605.19943)), Pencil Puzzle Bench ([Waugh, 2026](https://arxiv.org/abs/2603.02119)) and the Sudoku-Extreme dataset of HRM ([Wang et al., 2025](https://arxiv.org/abs/2506.21734)). Please cite them as well when you use the corresponding code, baselines or data.
-
 ## Acknowledgements
 
 Maxime Illouz is a PhD student funded by bursaries from Canada Research Chair grant number CRC-2023-00228 (*Computing for the Greater Good*) awarded to Elvis Dohmatob. The notebooks build on the TRM release of Samsung SAIL Montréal, and the PPBench build relies on the `ppbench` package and the PPBench dataset.
